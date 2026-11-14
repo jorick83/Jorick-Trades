@@ -2,6 +2,17 @@
   'use strict';
   const cfg = window.JORICK_SYNC_CONFIG || {};
   const key = 'vpj-trades-v3';
+  const sessionKey = 'jorick-sync-session-v1';
+  const storedSession = () => {
+    try { return JSON.parse(sessionStorage.getItem(sessionKey) || localStorage.getItem(sessionKey) || 'null'); }
+    catch { return null; }
+  };
+  const clearSession = () => { sessionStorage.removeItem(sessionKey); localStorage.removeItem(sessionKey); };
+  function persistSession(remember) {
+    clearSession();
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem(sessionKey, JSON.stringify({ refresh, userId }));
+  }
   const base = String(cfg.supabaseUrl || '').replace(/\/$/, '');
   const anon = String(cfg.supabaseAnonKey || '');
   const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base) && anon.length > 20 && !anon.includes('YOUR-');
@@ -49,6 +60,7 @@
     if (!res.ok || !data.access_token) throw new Error('Sessionen har gått ut. Logga in igen.');
     access = data.access_token;
     refresh = data.refresh_token;
+    persistSession(localStorage.getItem(sessionKey) !== null);
   }
   async function withRefresh(fn) {
     try { return await fn(); }
@@ -110,6 +122,8 @@
     say('Loggar in…');
     try {
       await login(form.elements.email.value.trim(), form.elements.password.value);
+      persistSession(form.elements.remember.checked);
+      form.elements.password.value = '';
       say('Hämtar journalen…');
       const remote = await loadRemote();
       const local = safeJSON(localStorage.getItem(key));
@@ -132,8 +146,17 @@
       watchLocalStorage();
       launch();
       say('Journalen synkroniserad ✓');
-    } catch (err) { say(err.message, true); access = null; userId = null; }
+    } catch (err) { say(err.message, true); access = null; userId = null; refresh = null; clearSession(); }
     finally { btn.disabled = false; }
+  });
+  const emailField = form.elements.email;
+  const toggleEmail = document.getElementById('sync-toggle-email');
+  toggleEmail.addEventListener('click', () => {
+    const visible = emailField.type === 'password';
+    emailField.type = visible ? 'text' : 'password';
+    toggleEmail.textContent = visible ? 'Dölj' : 'Visa';
+    toggleEmail.setAttribute('aria-label', visible ? 'Dölj e-postadress' : 'Visa e-postadress');
+    toggleEmail.setAttribute('aria-pressed', String(visible));
   });
   document.getElementById('sync-retry').addEventListener('click', () => { if (queued !== null) flush(); else say('Inga väntande ändringar.'); });
   document.getElementById('sync-reload').addEventListener('click', async () => {
@@ -145,7 +168,32 @@
       location.reload();
     } catch (e) { say(e.message, true); }
   });
-  document.getElementById('sync-logout').addEventListener('click', () => { if (queued !== null) return say('Spara väntande ändringar innan du loggar ut.', true); location.reload(); });
+  document.getElementById('sync-logout').addEventListener('click', () => { if (queued !== null) return say('Spara väntande ändringar innan du loggar ut.', true); clearSession(); access = null; refresh = null; userId = null; location.reload(); });
+  async function restoreSession() {
+    const saved = storedSession();
+    if (!saved?.refresh || !saved?.userId) return;
+    refresh = saved.refresh;
+    userId = saved.userId;
+    try {
+      say('Återställer inloggningen…');
+      await refreshToken();
+      const remote = await loadRemote();
+      if (remote !== null) {
+        nativeSet.call(localStorage, key, JSON.stringify(remote));
+        lastSaved = JSON.stringify(remote);
+      } else {
+        nativeSet.call(localStorage, key, '[]');
+        lastSaved = '[]';
+      }
+      watchLocalStorage();
+      launch();
+      say('Journalen synkroniserad ✓');
+    } catch (err) {
+      clearSession(); access = null; refresh = null; userId = null;
+      say('Logga in igen. ' + err.message, true);
+    }
+  }
+  if (configured) restoreSession();
   if (!configured) say('Ange Supabase URL och publishable/anon key i sync-config.js.', true);
   else say('Logga in med din Supabase-användare.');
 })();
