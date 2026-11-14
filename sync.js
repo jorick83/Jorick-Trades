@@ -34,6 +34,8 @@
     s.type = 'module';
     s.src = './assets/index-B9Kc_f47.js';
     document.body.appendChild(s);
+    refreshTradingDays();
+    scheduleTradingDayRender();
   }
   async function request(path, options = {}) {
     const response = await fetch(base + path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) }, cache: 'no-store' });
@@ -80,6 +82,79 @@
       body: JSON.stringify({ user_id: userId, trades })
     }));
   }
+
+  // Trading days are stored separately from individual trades.
+  // A dated row counts as a trading day even when no trade was taken.
+  let tradingDayStats = null;
+  let tradingDayMessage = '';
+  let tradingDayRenderPending = false;
+  function renderTradingDays() {
+    if (!booted) return;
+    const app = document.getElementById('root');
+    if (!app) return;
+    const existing = document.getElementById('jorick-trading-days');
+    const labels = Array.from(app.querySelectorAll('div,span,p,h2,h3,h4')).filter(
+      el => el.children.length === 0 && /^(net p&l|win rate|profit factor)$/i.test((el.textContent || '').trim())
+    );
+    const net = labels.find(el => /^net p&l$/i.test(el.textContent.trim()));
+    if (!net) { if (existing) existing.remove(); return; }
+    let grid = net.parentElement;
+    while (grid && grid !== app) {
+      const t = grid.textContent || '';
+      if (/WIN RATE/i.test(t) && /PROFIT FACTOR/i.test(t) && /NET P&L/i.test(t) && grid.children.length >= 3) break;
+      grid = grid.parentElement;
+    }
+    if (!grid || grid === app) return;
+    const section = existing || document.createElement('section');
+    if (!existing) {
+      section.id = 'jorick-trading-days';
+      section.setAttribute('aria-label', 'Tradingdagar');
+      section.style.cssText = 'margin:20px 0 24px;padding:18px 20px;border:1px solid #272b35;border-radius:14px;background:#090a0e;color:#e5e7eb;font-family:inherit';
+      section.innerHTML = '<div style="font-size:13px;color:#a1a1aa;margin-bottom:14px">TRADINGDAGAR · HELA JOURNALEN</div><div id="jorick-day-values" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px"></div><div id="jorick-day-note" style="font-size:12px;color:#9ca3af;margin-top:12px"></div>';
+    }
+    if (section.previousElementSibling !== grid) grid.after(section);
+    const values = section.querySelector('#jorick-day-values');
+    const note = section.querySelector('#jorick-day-note');
+    if (tradingDayStats) {
+      const stats = [
+        ['Tradingdagar', tradingDayStats.total],
+        ['Dagar med trades', tradingDayStats.withTrades],
+        ['Dagar utan trades', tradingDayStats.withoutTrades]
+      ];
+      const html = stats.map(([label, value]) => '<div><div style="font-size:12px;color:#9ca3af">' + label + '</div><div style="font-size:28px;font-weight:650;margin-top:4px">' + value + '</div></div>').join('');
+      if (values.innerHTML !== html) values.innerHTML = html;
+      note.textContent = 'Alla datum i Google Sheets räknas, även dagar utan affärer. Uppdateras från Supabase ungefär var femte minut.';
+    } else {
+      if (values.textContent !== 'Hämtar tradingdagar…') values.textContent = 'Hämtar tradingdagar…';
+      note.textContent = tradingDayMessage;
+    }
+  }
+  function scheduleTradingDayRender() {
+    if (tradingDayRenderPending) return;
+    tradingDayRenderPending = true;
+    requestAnimationFrame(() => { tradingDayRenderPending = false; renderTradingDays(); });
+  }
+  async function refreshTradingDays() {
+    if (!userId || !booted) return;
+    try {
+      const rows = await withRefresh(() => request('/rest/v1/trading_days?user_id=eq.' + encodeURIComponent(userId) + '&select=trade_date,has_trade&limit=10000'));
+      if (!Array.isArray(rows)) throw new Error('Felaktigt svar');
+      const days = new Map();
+      for (const row of rows) {
+        if (row.trade_date) days.set(row.trade_date, Boolean(row.has_trade));
+      }
+      const withTrades = Array.from(days.values()).filter(Boolean).length;
+      tradingDayStats = { total: days.size, withTrades, withoutTrades: days.size - withTrades };
+      tradingDayMessage = '';
+    } catch (err) {
+      tradingDayMessage = 'Kunde inte hämta tradingdagar: ' + err.message;
+    }
+    scheduleTradingDayRender();
+  }
+  const tradingDayObserver = new MutationObserver(scheduleTradingDayRender);
+  tradingDayObserver.observe(document.getElementById('root'), { childList: true, subtree: true });
+  setInterval(refreshTradingDays, 5 * 60 * 1000);
+
   let queued = null;
   async function flush() {
     if (busy || queued === null) return;
