@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Volume Profile Journal</title>
+    <title>Jorick Trades | Volume Profile Journal</title>
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="apple-touch-icon" href="./logo.png" />
     <script src="./sync-config.js"></script>
     <script defer src="./sync.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-J3Vnt_Z4.css">
@@ -33,5 +35,21 @@
       <button id="sync-logout">Logga ut</button>
     </div>
     <div id="root"></div>
+    <script>
+      (() => {
+        const updateLogo = () => {
+          const header = document.querySelector('#root header');
+          if (!header) return;
+          const img = Array.from(header.querySelectorAll('img')).find(el => /logo|jorick/i.test(el.alt || ''));
+          if (img && !img.src.endsWith('/logo.png')) {
+            img.src = './logo.png';
+            img.alt = 'Jorick Trades';
+            img.style.objectFit = 'contain';
+          }
+        };
+        new MutationObserver(updateLogo).observe(document.getElementById('root'), {childList:true,subtree:true});
+        updateLogo();
+      })();
+    </script>
   </body>
 </html>
