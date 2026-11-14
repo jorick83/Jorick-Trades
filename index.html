@@ -4,10 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Volume Profile Journal</title>
-    <script type="module" crossorigin src="./assets/index-B9Kc_f47.js"></script>
+    <script src="./sync-config.js"></script>
+    <script defer src="./sync.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-J3Vnt_Z4.css">
   </head>
   <body>
+    <div id="sync-root" style="min-height:100vh;display:grid;place-items:center;background:#090e1a;color:#e5efff;font-family:system-ui;padding:24px">
+      <form id="sync-login" style="width:min(100%,390px);display:grid;gap:14px;background:#111c30;border:1px solid #264c7c;border-radius:18px;padding:26px">
+        <img src="./logo.png" alt="Jorick" style="width:160px;max-width:100%;margin:auto" />
+        <h1 style="font-size:22px;text-align:center;margin:0">Jorick Trades</h1>
+        <p style="margin:0;color:#abc4e8;text-align:center">Logga in för att synkronisera din tradingjournal.</p>
+        <label>E-post<input name="email" type="email" required autocomplete="username" style="display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border-radius:8px;background:#080f1e;color:white;border:1px solid #52709b" /></label>
+        <label>Lösenord<input name="password" type="password" required autocomplete="current-password" style="display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border-radius:8px;background:#080f1e;color:white;border:1px solid #52709b" /></label>
+        <button type="submit" style="padding:12px;border:0;border-radius:8px;background:#1678dd;color:white;font-weight:bold;cursor:pointer">Logga in</button>
+        <p id="sync-status" role="status" style="margin:0;font-size:13px;overflow-wrap:anywhere"></p>
+      </form>
+    </div>
+    <div id="sync-bar" hidden style="position:fixed;bottom:10px;right:10px;z-index:99999;background:#101e35;color:#e5efff;padding:10px 12px;border:1px solid #3263a4;border-radius:10px;font:12px system-ui;max-width:calc(100vw - 20px)">
+      <span id="sync-bar-text">Molnsynkronisering aktiv</span>
+      <button id="sync-retry" style="margin-left:8px">Försök igen</button>
+      <button id="sync-reload">Hämta senaste</button>
+      <button id="sync-logout">Logga ut</button>
+    </div>
     <div id="root"></div>
   </body>
 </html>
