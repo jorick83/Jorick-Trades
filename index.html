@@ -37,18 +37,30 @@
     <div id="root"></div>
     <script>
       (() => {
-        const updateLogo = () => {
-          const header = document.querySelector('#root header');
-          if (!header) return;
-          const img = Array.from(header.querySelectorAll('img')).find(el => /logo|jorick/i.test(el.alt || ''));
-          if (img && !img.src.endsWith('/logo.png')) {
-            img.src = './logo.png';
-            img.alt = 'Jorick Trades';
-            img.style.objectFit = 'contain';
+        const root = document.getElementById('root');
+        const base = new URL('./', window.location.href);
+        const logoUrl = new URL('logo.png', base).href;
+        const certificateUrl = new URL('certificates/iq-capital-50k.jpg', base).href;
+        const fixImages = () => {
+          const header = root.querySelector('header');
+          if (header) {
+            for (const img of header.querySelectorAll('img')) {
+              if (/logo|jorick/i.test(img.alt || '') && img.src !== logoUrl) {
+                img.src = logoUrl;
+                img.style.objectFit = 'contain';
+              }
+            }
+          }
+          for (const img of root.querySelectorAll('img')) {
+            if (/iq capital challenge passed/i.test(img.alt || '') && img.src !== certificateUrl) {
+              img.src = certificateUrl;
+              img.style.maxWidth = '100%';
+              img.style.height = 'auto';
+            }
           }
         };
-        new MutationObserver(updateLogo).observe(document.getElementById('root'), {childList:true,subtree:true});
-        updateLogo();
+        new MutationObserver(fixImages).observe(root, {childList:true,subtree:true});
+        fixImages();
       })();
     </script>
   </body>
