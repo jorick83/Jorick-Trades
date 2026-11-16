@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="sv" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Coach | Jorick Trades</title><script src="./sync-config.js"></script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090e1a;color:#e5efff;font:15px system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1080px;margin:auto;padding:26px 18px 80px}header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:32px}a{color:#83b9ff}header a{text-decoration:none;border:1px solid #334761;padding:9px 14px;border-radius:9px}h1{font-size:32px;margin:0 0 6px}h2{font-size:21px;margin:0 0 10px}.muted{color:#9ab0cf}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:26px 0}.stat,.session,.empty{background:#111c30;border:1px solid #283e5f;border-radius:14px;padding:19px}.stat strong{display:block;font-size:28px;margin-top:7px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:25px 0}select,button{background:#152741;color:#e5efff;border:1px solid #36547c;padding:9px 12px;border-radius:8px}button{cursor:pointer}.session{margin:15px 0}.session-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.tag{font-size:12px;background:#213756;padding:6px 9px;border-radius:20px}.session p{line-height:1.6}.details{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:16px}.details>div{background:#0c1627;border-radius:10px;padding:14px}.details h3{margin:0 0 8px;font-size:14px}.details ul{padding-left:19px;margin:0}.details li{margin:6px 0;line-height:1.5}small{color:#9ab0cf}.empty{margin:25px 0}#message{margin:12px 0;color:#fbbf24}details summary{cursor:pointer;color:#93c5fd;margin-top:14px}
+</style></head><body><main><header><div><h1>AI Coach</h1><div class="muted">Jorick Trades · Sessionsanalyser och beslutsdisciplin</div></div><a href="./index.html">Tillbaka till journalen</a></header>
+<p class="muted">Här samlas dina tradinganalyser per datum – även sessioner där du inte tog någon trade. Koppling till journalens affärer kommer senare.</p>
+<div class="stats"><div class="stat">Analyserade sessioner<strong id="total">–</strong></div><div class="stat">Sessioner utan trade<strong id="no-trade">–</strong></div><div class="stat">Sessioner med trade<strong id="with-trade">–</strong></div></div>
+<div class="toolbar"><label for="filter">Visa </label><select id="filter"><option value="all">Alla sessioner</option><option value="no_trade">Utan trade</option><option value="traded">Med trade</option><option value="unreviewed">Ej klassificerade</option></select><button id="reload">Uppdatera</button></div>
+<div id="message" role="status"></div><div id="sessions"></div>
+</main><script>
+(() => {
+'use strict';
+const cfg=window.JORICK_SYNC_CONFIG||{},base=String(cfg.supabaseUrl||'').replace(/\/$/,'');
+const sessionKey='jorick-sync-session-v1';
+const msg=document.getElementById('message'), container=document.getElementById('sessions');
+let rows=[];
+const el=(tag,txt,cls)=>{const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;if(cls)x.className=cls;return x;};
+const add=(parent,tag,txt,cls)=>{const x=el(tag,txt,cls);parent.append(x);return x;};
+const list=(parent,title,values)=>{if(!Array.isArray(values)||!values.length)return;const b=add(parent,'div');add(b,'h3',title);const ul=add(b,'ul');values.forEach(v=>add(ul,'li',String(v)));};
+const stored=()=>{try{return JSON.parse(sessionStorage.getItem(sessionKey)||localStorage.getItem(sessionKey)||'null')}catch{return null}};
+function render(){
+document.getElementById('total').textContent=rows.length;
+document.getElementById('no-trade').textContent=rows.filter(x=>x.session_status==='no_trade').length;
+document.getElementById('with-trade').textContent=rows.filter(x=>x.session_status==='traded').length;
+container.replaceChildren();
+const filter=document.getElementById('filter').value, selected=rows.filter(x=>filter==='all'||x.session_status===filter);
+if(!selected.length){add(container,'div',rows.length?'Inga sessioner matchar filtret.':'Inga AI-analyser publicerade ännu.','empty');return}
+for(const s of selected){
+const card=add(container,'article',undefined,'session'),head=add(card,'div',undefined,'session-head'),left=add(head,'div');
+add(left,'small',s.session_date||'Datum saknas');add(left,'h2',s.title||'Tradinganalys');
+const status={no_trade:'Ingen trade',traded:'Trade genomförd',unreviewed:'Ej klassificerad'}[s.session_status]||'Ej klassificerad';
+add(head,'span',status,'tag');
+if(s.summary)add(card,'p',s.summary);
+const details=add(card,'div',undefined,'details');
+if(s.market_context){const d=add(details,'div');add(d,'h3','Marknadskontext');add(d,'p',s.market_context)}
+if(s.plan_vs_action){const d=add(details,'div');add(d,'h3','Plan kontra agerande');add(d,'p',s.plan_vs_action)}
+list(details,'Positiva observationer',s.positives);list(details,'Förbättringsområden',s.improvements);list(details,'Lärdomar',s.lessons);
+if(s.source_url&&/^https:\/\/drive\.google\.com\//.test(s.source_url)){const link=add(card,'a','Visa transkription');link.href=s.source_url;link.target='_blank';link.rel='noopener noreferrer'}
+}
+}
+async function load(){
+msg.textContent='Hämtar analyser…';
+const session=stored();if(!session?.refresh){msg.textContent='Logga först in på journalens startsida, och öppna sedan AI Coach.';return}
+try{
+const auth=await fetch(base+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:cfg.supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh})});
+const token=await auth.json();if(!auth.ok||!token.access_token)throw Error('Din inloggning har gått ut. Logga in igen på startsidan.');
+const storage=localStorage.getItem(sessionKey)?localStorage:sessionStorage;
+storage.setItem(sessionKey,JSON.stringify({refresh:token.refresh_token,userId:token.user.id}));
+const response=await fetch(base+'/rest/v1/ai_coach_sessions?user_id=eq.'+encodeURIComponent(token.user.id)+'&select=*&order=session_date.desc,created_at.desc&limit=500',{headers:{apikey:cfg.supabaseAnonKey,Authorization:'Bearer '+token.access_token}});
+if(!response.ok)throw Error('Kunde inte läsa AI Coach från Supabase (HTTP '+response.status+').');
+rows=await response.json();msg.textContent='';render();
+}catch(e){msg.textContent=e.message||String(e)}
+}
+document.getElementById('filter').addEventListener('change',render);
+document.getElementById('reload').addEventListener('click',load);load();
+})();
+</script></body></html>
