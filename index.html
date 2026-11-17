@@ -64,5 +64,34 @@
         fixImages();
       })();
     </script>
+
+    <script>
+      (() => {
+        // Keep the original journal and its data intact; replace only the Reviews presentation.
+        const root = document.getElementById('root');
+        function mountCoach() {
+          const tabs = [...root.querySelectorAll('[role="tab"]')];
+          const reviewTab = tabs.find(x => x.getAttribute('data-value') === 'reviews' || x.textContent.trim() === 'Reviews');
+          const oldCoachTab = tabs.find(x => x.getAttribute('data-value') === 'coach' || x.textContent.trim() === 'Coach');
+          if (oldCoachTab) { oldCoachTab.hidden = true; oldCoachTab.style.display = 'none'; oldCoachTab.setAttribute('aria-hidden','true'); oldCoachTab.tabIndex = -1; }
+          if (reviewTab && reviewTab.textContent.trim() !== 'AI Coach') reviewTab.textContent = 'AI Coach';
+          const reviewPanel = root.querySelector('[role="tabpanel"][data-state="active"][data-value="reviews"], [role="tabpanel"][data-value="reviews"]');
+          if (!reviewPanel) return;
+          if (reviewPanel.querySelector('#integrated-ai-coach')) return;
+          const previous = document.createElement('div'); previous.id = 'legacy-review-content';
+          while (reviewPanel.firstChild) previous.appendChild(reviewPanel.firstChild);
+          previous.hidden = true;
+          reviewPanel.appendChild(previous);
+          const frame = document.createElement('iframe'); frame.id = 'integrated-ai-coach';
+          frame.src = './ai-coach.html?embedded=1'; frame.title = 'Jorick Trades AI Coach';
+          frame.style.cssText = 'display:block;width:100%;min-height:1100px;border:0;border-radius:12px;background:#090e1a';
+          frame.setAttribute('loading','lazy'); reviewPanel.appendChild(frame);
+          window.addEventListener('message', e => { if (e.origin !== location.origin || e.data?.type !== 'jorick-ai-coach-height') return; frame.style.height = Math.max(650,Number(e.data.height)||1100)+'px'; }, {passive:true});
+        }
+        let busy = false;
+        new MutationObserver(() => { if(busy)return; busy=true; try{mountCoach()}finally{busy=false} }).observe(root,{childList:true,subtree:true});
+        mountCoach();
+      })();
+    </script>
   </body>
 </html>
