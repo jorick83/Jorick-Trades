@@ -2,10 +2,10 @@
 <html lang="sv" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Coach | Jorick Trades</title><script src="./sync-config.js"></script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090e1a;color:#e5efff;font:15px system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1080px;margin:auto;padding:26px 18px 80px}header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:32px}a{color:#83b9ff}header a{text-decoration:none;border:1px solid #334761;padding:9px 14px;border-radius:9px}h1{font-size:32px;margin:0 0 6px}h2{font-size:21px;margin:0 0 10px}.muted{color:#9ab0cf}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:26px 0}.stat,.session,.empty{background:#111c30;border:1px solid #283e5f;border-radius:14px;padding:19px}.stat strong{display:block;font-size:28px;margin-top:7px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:25px 0}select,button{background:#152741;color:#e5efff;border:1px solid #36547c;padding:9px 12px;border-radius:8px}button{cursor:pointer}.session{margin:15px 0}.session-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.tag{font-size:12px;background:#213756;padding:6px 9px;border-radius:20px}.session p{line-height:1.6}.details{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:16px}.details>div{background:#0c1627;border-radius:10px;padding:14px}.details h3{margin:0 0 8px;font-size:14px}.details ul{padding-left:19px;margin:0}.details li{margin:6px 0;line-height:1.5}small{color:#9ab0cf}.empty{margin:25px 0}#message{margin:12px 0;color:#fbbf24}details summary{cursor:pointer;color:#93c5fd;margin-top:14px}
-</style></head><body><main><header><div><h1>AI Coach</h1><div class="muted">Jorick Trades · Sessionsanalyser och beslutsdisciplin</div></div><a href="./index.html">Tillbaka till journalen</a></header>
+body.embedded main{max-width:none;padding:18px 10px 40px}body.embedded header a{display:none}body.embedded header{margin-bottom:16px}</style></head><body><main><header><div><h1>AI Coach</h1><div class="muted">Jorick Trades · Sessionsanalyser och beslutsdisciplin</div></div><a href="./index.html">Tillbaka till journalen</a></header>
 <p class="muted">Här samlas dina tradinganalyser per datum – även sessioner där du inte tog någon trade. Koppling till journalens affärer kommer senare.</p>
 <div class="stats"><div class="stat">Analyserade sessioner<strong id="total">–</strong></div><div class="stat">Sessioner utan trade<strong id="no-trade">–</strong></div><div class="stat">Sessioner med trade<strong id="with-trade">–</strong></div></div>
-<div class="toolbar"><label for="filter">Visa </label><select id="filter"><option value="all">Alla sessioner</option><option value="no_trade">Utan trade</option><option value="traded">Med trade</option><option value="unreviewed">Ej klassificerade</option></select><button id="reload">Uppdatera</button></div>
+<div class="stats" id="coach-insights"><div class="stat">Disciplin: inväntad entry<strong id="discipline-count">–</strong><small>Sessioner där analysen beskriver att du avstod från att jaga priset</small></div><div class="stat">Risk & process<strong id="risk-count">–</strong><small>Sessioner med förbättringspunkter kring risk eller plan</small></div><div class="stat">Återkommande lärdomar<strong id="lessons-count">–</strong><small>Antal dokumenterade lärdomar</small></div></div><div class="toolbar"><label for="filter">Visa </label><select id="filter"><option value="all">Alla sessioner</option><option value="no_trade">Utan trade</option><option value="traded">Med trade</option><option value="unreviewed">Ej klassificerade</option></select><button id="reload">Uppdatera</button></div>
 <div id="message" role="status"></div><div id="sessions"></div>
 </main><script>
 (() => {
@@ -14,6 +14,9 @@ const cfg=window.JORICK_SYNC_CONFIG||{},base=String(cfg.supabaseUrl||'').replace
 const sessionKey='jorick-sync-session-v1';
 const msg=document.getElementById('message'), container=document.getElementById('sessions');
 let rows=[];
+if(new URLSearchParams(location.search).get('embedded')==='1')document.body.classList.add('embedded');
+const reportHeight=()=>{if(window.parent!==window)window.parent.postMessage({type:'jorick-ai-coach-height',height:document.documentElement.scrollHeight},location.origin)};
+new ResizeObserver(reportHeight).observe(document.body);
 const el=(tag,txt,cls)=>{const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;if(cls)x.className=cls;return x;};
 const add=(parent,tag,txt,cls)=>{const x=el(tag,txt,cls);parent.append(x);return x;};
 const list=(parent,title,values)=>{if(!Array.isArray(values)||!values.length)return;const b=add(parent,'div');add(b,'h3',title);const ul=add(b,'ul');values.forEach(v=>add(ul,'li',String(v)));};
@@ -22,6 +25,9 @@ function render(){
 document.getElementById('total').textContent=rows.length;
 document.getElementById('no-trade').textContent=rows.filter(x=>x.session_status==='no_trade').length;
 document.getElementById('with-trade').textContent=rows.filter(x=>x.session_status==='traded').length;
+document.getElementById('discipline-count').textContent=rows.filter(x=>[x.summary,...(x.positives||[])].join(' ').toLowerCase().match(/jagade inte|inte jagade|avstod från att jaga|inväntade.*entry/)).length;
+document.getElementById('risk-count').textContent=rows.filter(x=>(x.improvements||[]).join(' ').toLowerCase().match(/risk|stop|plan/)).length;
+document.getElementById('lessons-count').textContent=rows.reduce((n,x)=>n+(Array.isArray(x.lessons)?x.lessons.length:0),0);
 container.replaceChildren();
 const filter=document.getElementById('filter').value, selected=rows.filter(x=>filter==='all'||x.session_status===filter);
 if(!selected.length){add(container,'div',rows.length?'Inga sessioner matchar filtret.':'Inga AI-analyser publicerade ännu.','empty');return}
