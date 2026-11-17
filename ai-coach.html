@@ -2,7 +2,7 @@
 <html lang="sv" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Coach | Jorick Trades</title><script src="./sync-config.js"></script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090e1a;color:#e5efff;font:15px system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1080px;margin:auto;padding:26px 18px 80px}header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:32px}a{color:#83b9ff}header a{text-decoration:none;border:1px solid #334761;padding:9px 14px;border-radius:9px}h1{font-size:32px;margin:0 0 6px}h2{font-size:21px;margin:0 0 10px}.muted{color:#9ab0cf}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:26px 0}.stat,.session,.empty{background:#111c30;border:1px solid #283e5f;border-radius:14px;padding:19px}.stat strong{display:block;font-size:28px;margin-top:7px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:25px 0}select,button{background:#152741;color:#e5efff;border:1px solid #36547c;padding:9px 12px;border-radius:8px}button{cursor:pointer}.session{margin:15px 0}.session-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.tag{font-size:12px;background:#213756;padding:6px 9px;border-radius:20px}.session p{line-height:1.6}.details{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:16px}.details>div{background:#0c1627;border-radius:10px;padding:14px}.details h3{margin:0 0 8px;font-size:14px}.details ul{padding-left:19px;margin:0}.details li{margin:6px 0;line-height:1.5}small{color:#9ab0cf}.empty{margin:25px 0}#message{margin:12px 0;color:#fbbf24}details summary{cursor:pointer;color:#93c5fd;margin-top:14px}
-body.embedded main{max-width:none;padding:18px 10px 40px}body.embedded header a{display:none}body.embedded header{margin-bottom:16px}</style></head><body><main><header><div><h1>AI Coach</h1><div class="muted">Jorick Trades · Sessionsanalyser och beslutsdisciplin</div></div><a href="./index.html">Tillbaka till journalen</a></header>
+ .session-score{width:min(100%,320px);margin-left:auto;padding:13px 15px;border:1px solid #36547c;border-radius:12px;background:#0c1729}.score-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.score-top strong{font-size:24px}.score-bar{height:10px;overflow:hidden;border-radius:999px;background:#283950;margin:10px 0}.score-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#3188d9,#54c5b6)}.score-comment{font-size:13px;line-height:1.5;margin:6px 0!important;color:#d2e3f7}.score-focus{font-size:12px;color:#f1cf94;line-height:1.45;margin:7px 0 0!important}.score-breakdown{font-size:11px;color:#94abc9;margin-top:7px}@media(max-width:640px){.session-score{width:100%;margin-left:0}} body.embedded main{max-width:none;padding:18px 10px 40px}body.embedded header a{display:none}body.embedded header{margin-bottom:16px}</style></head><body><main><header><div><h1>AI Coach</h1><div class="muted">Jorick Trades · Sessionsanalyser och beslutsdisciplin</div></div><a href="./index.html">Tillbaka till journalen</a></header>
 <p class="muted">Här samlas dina tradinganalyser per datum – även sessioner där du inte tog någon trade. Koppling till journalens affärer kommer senare.</p>
 <div class="stats"><div class="stat">Analyserade sessioner<strong id="total">–</strong></div><div class="stat">Sessioner utan trade<strong id="no-trade">–</strong></div><div class="stat">Sessioner med trade<strong id="with-trade">–</strong></div></div>
 <div class="stats" id="coach-insights"><div class="stat">Disciplin: inväntad entry<strong id="discipline-count">–</strong><small>Sessioner där analysen beskriver att du avstod från att jaga priset</small></div><div class="stat">Risk & process<strong id="risk-count">–</strong><small>Sessioner med förbättringspunkter kring risk eller plan</small></div><div class="stat">Återkommande lärdomar<strong id="lessons-count">–</strong><small>Antal dokumenterade lärdomar</small></div></div><div class="toolbar"><label for="filter">Visa </label><select id="filter"><option value="all">Alla sessioner</option><option value="no_trade">Utan trade</option><option value="traded">Med trade</option><option value="unreviewed">Ej klassificerade</option></select><button id="reload">Uppdatera</button></div>
@@ -35,7 +35,21 @@ for(const s of selected){
 const card=add(container,'article',undefined,'session'),head=add(card,'div',undefined,'session-head'),left=add(head,'div');
 add(left,'small',s.session_date||'Datum saknas');add(left,'h2',s.title||'Tradinganalys');
 const status={no_trade:'Ingen trade',traded:'Trade genomförd',unreviewed:'Ej klassificerad'}[s.session_status]||'Ej klassificerad';
-add(head,'span',status,'tag');
+add(left,'span',status,'tag');
+const scoreBox=add(head,'aside',undefined,'session-score');
+const top=add(scoreBox,'div',undefined,'score-top');
+add(top,'span','Sessionsstyrka · process');
+const score=Number.isInteger(s.process_score)&&s.process_score>=0&&s.process_score<=100?s.process_score:null;
+add(top,'strong',score===null?'Ej bedömd':score+'/100');
+const track=add(scoreBox,'div',undefined,'score-bar');track.setAttribute('role','progressbar');track.setAttribute('aria-label','Processbetyg');
+if(score!==null){track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.setAttribute('aria-valuenow',String(score));const fill=add(track,'div',undefined,'score-fill');fill.style.width=score+'%';}
+if(s.score_comment)add(scoreBox,'p',s.score_comment,'score-comment');
+if(s.score_focus)add(scoreBox,'p','Utveckla: '+s.score_focus,'score-focus');
+if(s.score_breakdown&&typeof s.score_breakdown==='object'){
+const b=s.score_breakdown;const labels={planering:'Plan',entrydisciplin:'Entry',riskhantering:'Risk',beslutsfattande:'Beslut'};
+const bits=Object.entries(labels).filter(([k])=>Number.isFinite(b[k])).map(([k,v])=>v+' '+b[k]+'/25');
+if(bits.length)add(scoreBox,'div',bits.join(' · '),'score-breakdown');
+}
 if(s.summary)add(card,'p',s.summary);
 const details=add(card,'div',undefined,'details');
 if(s.market_context){const d=add(details,'div');add(d,'h3','Marknadskontext');add(d,'p',s.market_context)}
