@@ -71,11 +71,11 @@
         const root = document.getElementById('root');
         function mountCoach() {
           const tabs = [...root.querySelectorAll('[role="tab"]')];
-          const reviewTab = tabs.find(x => x.getAttribute('data-value') === 'reviews' || x.textContent.trim() === 'Reviews');
+          const reviewTab = tabs.find(x => x.getAttribute('data-value') === 'reviews' || x.textContent.trim() === 'Reviews' || x.textContent.trim() === 'AI Coach');
           const oldCoachTab = tabs.find(x => x.getAttribute('data-value') === 'coach' || x.textContent.trim() === 'Coach');
           if (oldCoachTab) { oldCoachTab.hidden = true; oldCoachTab.style.display = 'none'; oldCoachTab.setAttribute('aria-hidden','true'); oldCoachTab.tabIndex = -1; }
           if (reviewTab && reviewTab.textContent.trim() !== 'AI Coach') reviewTab.textContent = 'AI Coach';
-          const reviewPanel = root.querySelector('[role="tabpanel"][data-state="active"][data-value="reviews"], [role="tabpanel"][data-value="reviews"]');
+          const reviewPanel = root.querySelector('[role="tabpanel"][data-value="reviews"], [role="tabpanel"][id$="-content-reviews"]');
           if (!reviewPanel) return;
           if (reviewPanel.querySelector('#integrated-ai-coach')) return;
           const previous = document.createElement('div'); previous.id = 'legacy-review-content';
