@@ -82,7 +82,7 @@
           previous.hidden = true;
           reviewPanel.appendChild(previous);
           const frame = document.createElement('iframe'); frame.id = 'integrated-ai-coach';
-          frame.src = './ai-coach.html?embedded=1'; frame.title = 'Jorick Trades AI Coach';
+          frame.src = './ai-coach.html?embedded=1&version=20261117-score-v2'; frame.title = 'Jorick Trades AI Coach';
           frame.style.cssText = 'display:block;width:100%;min-height:1100px;border:0;border-radius:12px;background:#090e1a';
           frame.setAttribute('loading','lazy'); reviewPanel.appendChild(frame);
           window.addEventListener('message', e => { if (e.origin !== location.origin || e.data?.type !== 'jorick-ai-coach-height') return; frame.style.height = Math.max(650,Number(e.data.height)||1100)+'px'; }, {passive:true});
