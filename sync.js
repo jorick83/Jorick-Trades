@@ -224,15 +224,6 @@
     } catch (err) { say(err.message, true); access = null; userId = null; refresh = null; clearSession(); }
     finally { btn.disabled = false; }
   });
-  const emailField = form.elements.email;
-  const toggleEmail = document.getElementById('sync-toggle-email');
-  toggleEmail.addEventListener('click', () => {
-    const visible = emailField.type === 'password';
-    emailField.type = visible ? 'text' : 'password';
-    toggleEmail.textContent = visible ? 'Dölj' : 'Visa';
-    toggleEmail.setAttribute('aria-label', visible ? 'Dölj e-postadress' : 'Visa e-postadress');
-    toggleEmail.setAttribute('aria-pressed', String(visible));
-  });
   document.getElementById('sync-retry').addEventListener('click', () => { if (queued !== null) flush(); else say('Inga väntande ändringar.'); });
   document.getElementById('sync-reload').addEventListener('click', async () => {
     if (queued !== null) return say('Spara väntande ändringar innan du hämtar.', true);
