@@ -18,12 +18,12 @@
         <p style="margin:0;color:#abc4e8;text-align:center">Logga in för att synkronisera din tradingjournal.</p>
         <label>E-post
           <span style="display:flex;gap:8px;margin-top:6px">
-            <input name="email" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Ange din e-postadress" aria-label="E-postadress (dold)" style="flex:1;min-width:0;box-sizing:border-box;padding:12px;border-radius:8px;background:#080f1e;color:white;border:1px solid #52709b" />
+            <input name="email" type="email" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Ange din e-postadress" aria-label="E-postadress" style="flex:1;min-width:0;box-sizing:border-box;padding:12px;border-radius:8px;background:#080f1e;color:white;border:1px solid #52709b" />
             <button type="button" id="sync-toggle-email" aria-label="Visa e-postadress" aria-pressed="false" style="padding:0 12px;border:1px solid #52709b;border-radius:8px;background:#1c2a43;color:#e5efff;cursor:pointer">Visa</button>
           </span>
         </label>
         <label>Lösenord<input name="password" type="password" required autocomplete="current-password" style="display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border-radius:8px;background:#080f1e;color:white;border:1px solid #52709b" /></label>
-        <label style="display:flex;align-items:center;gap:9px;font-size:14px;color:#c8d9f3"><input name="remember" type="checkbox" checked style="accent-color:#1678dd;width:17px;height:17px" /> Kom ihåg mig på den här enheten</label>
+        <label style="display:flex;align-items:center;gap:9px;font-size:14px;color:#c8d9f3"><input name="remember" type="checkbox" checked style="accent-color:#1678dd;width:17px;height:17px" /> Håll mig inloggad på den här enheten</label>
         <button type="submit" style="padding:12px;border:0;border-radius:8px;background:#1678dd;color:white;font-weight:bold;cursor:pointer">Logga in</button>
         <p id="sync-status" role="status" style="margin:0;font-size:13px;overflow-wrap:anywhere"></p>
       </form>
