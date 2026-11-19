@@ -197,7 +197,7 @@
     say('Loggar in…');
     try {
       await login(form.elements.email.value.trim(), form.elements.password.value);
-      persistSession(form.elements.remember.checked);
+      persistSession(true);
       form.elements.password.value = '';
       say('Hämtar journalen…');
       const remote = await loadRemote();
@@ -249,6 +249,8 @@
     if (!saved?.refresh || !saved?.userId) return;
     refresh = saved.refresh;
     userId = saved.userId;
+    // Upgrade previous tab-only sessions to persistent sessions on this device.
+    if (sessionStorage.getItem(sessionKey) && !localStorage.getItem(sessionKey)) persistSession(true);
     try {
       say('Återställer inloggningen…');
       await refreshToken();
