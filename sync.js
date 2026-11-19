@@ -197,7 +197,7 @@
     say('Loggar in…');
     try {
       await login(form.elements.email.value.trim(), form.elements.password.value);
-      persistSession(true);
+      persistSession(form.elements.remember.checked);
       form.elements.password.value = '';
       say('Hämtar journalen…');
       const remote = await loadRemote();
