@@ -69,6 +69,18 @@
         const root = document.getElementById('root');
         function mountCoach() {
           const tabs = [...root.querySelectorAll('[role="tab"]')];
+          // Remove the calculator from the visible journal navigation.
+          for (const tab of tabs) {
+            const value = (tab.getAttribute('data-value') || '').toLowerCase();
+            const label = tab.textContent.trim().toLowerCase();
+            if (['calculator','calc','ib-calculator','ibcalculator'].includes(value) || /calculator|kalkylator/.test(label)) {
+              if (tab.getAttribute('aria-selected') === 'true') {
+                const fallback = tabs.find(t => t !== tab && !t.hidden && !/calculator|kalkylator/i.test(t.textContent));
+                if (fallback) fallback.click();
+              }
+              if (!tab.hidden) { tab.hidden = true; tab.style.display = 'none'; tab.setAttribute('aria-hidden','true'); tab.tabIndex = -1; }
+            }
+          }
           const reviewTab = tabs.find(x => x.getAttribute('data-value') === 'reviews' || x.textContent.trim() === 'Reviews' || x.textContent.trim() === 'AI Coach');
           const oldCoachTab = tabs.find(x => x.getAttribute('data-value') === 'coach' || x.textContent.trim() === 'Coach');
           if (oldCoachTab) { oldCoachTab.hidden = true; oldCoachTab.style.display = 'none'; oldCoachTab.setAttribute('aria-hidden','true'); oldCoachTab.tabIndex = -1; }
